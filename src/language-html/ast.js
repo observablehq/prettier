@@ -1,14 +1,17 @@
 "use strict";
 
+const fromPairs = require("lodash/fromPairs");
+const { isNonEmptyArray } = require("../common/util");
+const getLast = require("../utils/get-last");
+
 const NODES_KEYS = {
   attrs: true,
-  children: true
+  children: true,
 };
 
 class Node {
   constructor(props = {}) {
-    for (const key of Object.keys(props)) {
-      const value = props[key];
+    for (const [key, value] of Object.entries(props)) {
       if (key in NODES_KEYS) {
         this._setNodes(key, value);
       } else {
@@ -22,22 +25,22 @@ class Node {
       this[key] = cloneAndUpdateNodes(nodes, this);
       if (key === "attrs") {
         setNonEnumerableProperties(this, {
-          attrMap: this[key].reduce((reduced, attr) => {
-            reduced[attr.fullName] = attr.value;
-            return reduced;
-          }, Object.create(null))
+          attrMap: fromPairs(
+            this[key].map((attr) => [attr.fullName, attr.value])
+          ),
         });
       }
     }
   }
 
   map(fn) {
+    /** @type{any} */
     let newNode = null;
 
     for (const NODES_KEY in NODES_KEYS) {
       const nodes = this[NODES_KEY];
       if (nodes) {
-        const mappedNodes = mapNodesIfChanged(nodes, node => node.map(fn));
+        const mappedNodes = mapNodesIfChanged(nodes, (node) => node.map(fn));
         if (newNode !== nodes) {
           if (!newNode) {
             newNode = new Node();
@@ -53,40 +56,44 @@ class Node {
           newNode[key] = this[key];
         }
       }
+      // @ts-ignore
       const { index, siblings, prev, next, parent } = this;
       setNonEnumerableProperties(newNode, {
         index,
         siblings,
         prev,
         next,
-        parent
+        parent,
       });
     }
 
     return fn(newNode || this);
   }
 
+  /**
+   * @param {Object} [overrides]
+   */
   clone(overrides) {
-    return new Node(overrides ? Object.assign({}, this, overrides) : this);
+    return new Node(overrides ? { ...this, ...overrides } : this);
   }
 
   get firstChild() {
-    return this.children && this.children.length !== 0
-      ? this.children[0]
-      : null;
+    // @ts-ignore
+    return isNonEmptyArray(this.children) ? this.children[0] : null;
   }
 
   get lastChild() {
-    return this.children && this.children.length !== 0
-      ? this.children[this.children.length - 1]
-      : null;
+    // @ts-ignore
+    return isNonEmptyArray(this.children) ? getLast(this.children) : null;
   }
 
   // for element and attribute
   get rawName() {
+    // @ts-ignore
     return this.hasExplicitNamespace ? this.fullName : this.name;
   }
   get fullName() {
+    // @ts-ignore
     return this.namespace ? this.namespace + ":" + this.name : this.name;
   }
 }
@@ -99,7 +106,7 @@ function mapNodesIfChanged(nodes, fn) {
 }
 
 function cloneAndUpdateNodes(nodes, parent) {
-  const siblings = nodes.map(node =>
+  const siblings = nodes.map((node) =>
     node instanceof Node ? node.clone() : new Node(node)
   );
 
@@ -113,7 +120,7 @@ function cloneAndUpdateNodes(nodes, parent) {
       siblings,
       prev,
       next,
-      parent
+      parent,
     });
     prev = current;
     current = next;
@@ -124,13 +131,16 @@ function cloneAndUpdateNodes(nodes, parent) {
 }
 
 function setNonEnumerableProperties(obj, props) {
-  const descriptors = Object.keys(props).reduce((reduced, key) => {
-    reduced[key] = { value: props[key], enumerable: false };
-    return reduced;
-  }, {});
+  const descriptors = fromPairs(
+    Object.entries(props).map(([key, value]) => [
+      key,
+      { value, enumerable: false },
+    ])
+  );
+
   Object.defineProperties(obj, descriptors);
 }
 
 module.exports = {
-  Node
+  Node,
 };

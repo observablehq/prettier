@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import { Button, ClipboardButton } from "./buttons";
 import EditorState from "./EditorState";
@@ -21,7 +21,7 @@ const CATEGORIES_ORDER = [
   "JavaScript",
   "Markdown",
   "HTML",
-  "Special"
+  "Special",
 ];
 const ENABLED_OPTIONS = [
   "parser",
@@ -40,7 +40,8 @@ const ENABLED_OPTIONS = [
   "htmlWhitespaceSensitivity",
   "insertPragma",
   "requirePragma",
-  "vueIndentScriptAndStyle"
+  "vueIndentScriptAndStyle",
+  "embeddedLanguageFormatting",
 ];
 const ISSUES_URL = "https://github.com/prettier/prettier/issues/new?body=";
 const MAX_LENGTH = 8000 - ISSUES_URL.length; // it seems that GitHub limit is 8195
@@ -59,22 +60,47 @@ class Playground extends React.Component {
     );
 
     const options = Object.assign(defaultOptions, original.options);
-    const content = original.content || getCodeSample(options.parser);
 
-    this.state = { content, options };
+    // backwards support for old parser `babylon`
+    if (options.parser === "babylon") {
+      options.parser = "babel";
+    }
+
+    const content = original.content || getCodeSample(options.parser);
+    const selection = {};
+
+    this.state = { content, options, selection };
 
     this.handleOptionValueChange = this.handleOptionValueChange.bind(this);
 
-    this.setContent = content => this.setState({ content });
+    this.setContent = (content) => this.setState({ content });
     this.clearContent = this.setContent.bind(this, "");
     this.resetOptions = () => this.setState({ options: defaultOptions });
+    this.setSelection = (selection) => this.setState({ selection });
+    this.setSelectionAsRange = () => {
+      const { selection, content, options } = this.state;
+      const { head, anchor } = selection;
+      const range = [head, anchor].map(
+        ({ ch, line }) =>
+          content.split("\n").slice(0, line).join("\n").length +
+          ch +
+          (line ? 1 : 0)
+      );
+      const [rangeStart, rangeEnd] = range.sort((a, b) => a - b);
+      const updatedOptions = { ...options, rangeStart, rangeEnd };
+      if (rangeStart === rangeEnd) {
+        delete updatedOptions.rangeStart;
+        delete updatedOptions.rangeEnd;
+      }
+      this.setState({ options: updatedOptions });
+    };
 
     this.enabledOptions = orderOptions(props.availableOptions, ENABLED_OPTIONS);
     this.rangeStartOption = props.availableOptions.find(
-      opt => opt.name === "rangeStart"
+      (opt) => opt.name === "rangeStart"
     );
     this.rangeEndOption = props.availableOptions.find(
-      opt => opt.name === "rangeEnd"
+      (opt) => opt.name === "rangeEnd"
     );
   }
 
@@ -89,10 +115,10 @@ class Playground extends React.Component {
   }
 
   handleOptionValueChange(option, value) {
-    this.setState(state => {
-      const options = Object.assign({}, state.options);
+    this.setState((state) => {
+      const options = { ...state.options };
 
-      if (option.type === "int" && isNaN(value)) {
+      if (option.type === "int" && Number.isNaN(value)) {
         delete options[option.name];
       } else {
         options[option.name] = value;
@@ -108,43 +134,56 @@ class Playground extends React.Component {
     });
   }
 
-  getMarkdown(formatted, reformatted, full) {
+  getMarkdown({ formatted, reformatted, full, doc }) {
     const { content, options } = this.state;
     const { availableOptions, version } = this.props;
+    const orderedOptions = orderOptions(availableOptions, [
+      ...ENABLED_OPTIONS,
+      "rangeStart",
+      "rangeEnd",
+    ]);
+    const cliOptions = util.buildCliArgs(orderedOptions, options);
 
-    return formatMarkdown(
-      content,
-      formatted,
-      reformatted || "",
+    return formatMarkdown({
+      input: content,
+      output: formatted,
+      output2: reformatted,
+      doc,
       version,
-      window.location.href,
+      url: window.location.href,
       options,
-      util.buildCliArgs(availableOptions, options),
-      full
-    );
+      cliOptions,
+      full,
+    });
   }
 
   render() {
-    const { worker } = this.props;
+    const { worker, version } = this.props;
     const { content, options } = this.state;
+
+    // TODO: remove this when v2.3.0 is released
+    const [major, minor] = version.split(".", 2).map(Number);
+    const showShowComments =
+      Number.isNaN(major) || (major === 2 && minor >= 3) || major > 2;
 
     return (
       <EditorState>
-        {editorState => (
+        {(editorState) => (
           <PrettierFormat
             worker={worker}
             code={content}
             options={options}
             debugAst={editorState.showAst}
             debugDoc={editorState.showDoc}
+            debugComments={showShowComments && editorState.showComments}
             reformat={editorState.showSecondFormat}
           >
             {({ formatted, debug }) => {
-              const fullReport = this.getMarkdown(
+              const fullReport = this.getMarkdown({
                 formatted,
-                debug.reformatted,
-                true
-              );
+                reformatted: debug.reformatted,
+                full: true,
+              });
               const showFullReport =
                 encodeURIComponent(fullReport).length < MAX_LENGTH;
               return (
@@ -164,17 +203,34 @@ class Playground extends React.Component {
                         </label>
                         <Option
                           option={this.rangeStartOption}
-                          value={options.rangeStart}
+                          value={
+                            typeof options.rangeStart === "number"
+                              ? options.rangeStart
+                              : ""
+                          }
                           onChange={this.handleOptionValueChange}
                         />
                         <Option
                           option={this.rangeEndOption}
-                          value={options.rangeEnd}
+                          value={
+                            typeof options.rangeEnd === "number"
+                              ? options.rangeEnd
+                              : ""
+                          }
                           overrideMax={content.length}
                           onChange={this.handleOptionValueChange}
                         />
+
+                        <Button onClick={this.setSelectionAsRange}>
+                          Set selected text as range
+                        </Button>
                       </SidebarCategory>
                       <SidebarCategory title="Debug">
+                        <Checkbox
+                          label="show input"
+                          checked={editorState.showInput}
+                          onChange={editorState.toggleInput}
+                        />
                         <Checkbox
                           label="show AST"
                           checked={editorState.showAst}
@@ -185,11 +241,30 @@ class Playground extends React.Component {
                           checked={editorState.showDoc}
                           onChange={editorState.toggleDoc}
                         />
+                        {showShowComments && (
+                          <Checkbox
+                            label="show comments"
+                            checked={editorState.showComments}
+                            onChange={editorState.toggleComments}
+                          />
+                        )}
+                        <Checkbox
+                          label="show output"
+                          checked={editorState.showOutput}
+                          onChange={editorState.toggleOutput}
+                        />
                         <Checkbox
                           label="show second format"
                           checked={editorState.showSecondFormat}
                           onChange={editorState.toggleSecondFormat}
                         />
+                        {editorState.showDoc && debug.doc && (
+                          <ClipboardButton
+                            copy={() => this.getMarkdown({ doc: debug.doc })}
+                          >
+                            Copy doc
+                          </ClipboardButton>
+                        )}
                       </SidebarCategory>
                       <div className="sub-options">
                         <Button onClick={this.resetOptions}>
@@ -198,26 +273,40 @@ class Playground extends React.Component {
                       </div>
                     </Sidebar>
                     <div className="editors">
-                      <InputPanel
-                        mode={util.getCodemirrorMode(options.parser)}
-                        ruler={options.printWidth}
-                        value={content}
-                        codeSample={getCodeSample(options.parser)}
-                        overlayStart={options.rangeStart}
-                        overlayEnd={options.rangeEnd}
-                        onChange={this.setContent}
-                      />
+                      {editorState.showInput ? (
+                        <InputPanel
+                          mode={util.getCodemirrorMode(options.parser)}
+                          ruler={options.printWidth}
+                          value={content}
+                          codeSample={getCodeSample(options.parser)}
+                          overlayStart={options.rangeStart}
+                          overlayEnd={options.rangeEnd}
+                          onChange={this.setContent}
+                          onSelectionChange={this.setSelection}
+                        />
+                      ) : null}
                       {editorState.showAst ? (
-                        <DebugPanel value={debug.ast || ""} />
+                        <DebugPanel
+                          value={debug.ast || ""}
+                          autoFold={util.getAstAutoFold(options.parser)}
+                        />
                       ) : null}
                       {editorState.showDoc ? (
                         <DebugPanel value={debug.doc || ""} />
                       ) : null}
-                      <OutputPanel
-                        mode={util.getCodemirrorMode(options.parser)}
-                        value={formatted}
-                        ruler={options.printWidth}
-                      />
+                      {showShowComments && editorState.showComments ? (
+                        <DebugPanel
+                          value={debug.comments || ""}
+                          autoFold={util.getAstAutoFold(options.parser)}
+                        />
+                      ) : null}
+                      {editorState.showOutput ? (
+                        <OutputPanel
+                          mode={util.getCodemirrorMode(options.parser)}
+                          value={formatted}
+                          ruler={options.printWidth}
+                        />
+                      ) : null}
                       {editorState.showSecondFormat ? (
                         <OutputPanel
                           mode={util.getCodemirrorMode(options.parser)}
@@ -236,11 +325,11 @@ class Playground extends React.Component {
                       <ClipboardButton
                         copy={JSON.stringify(
                           // Remove `parser` since people usually paste this
-                          // into their .prettierrc and specifying a toplevel
+                          // into their .prettierrc and specifying a top-level
                           // parser there is an anti-pattern. Note:
                           // `JSON.stringify` omits keys whose values are
                           // `undefined`.
-                          Object.assign({}, options, { parser: undefined }),
+                          { ...options, parser: undefined },
                           null,
                           2
                         )}
@@ -254,7 +343,10 @@ class Playground extends React.Component {
                       </ClipboardButton>
                       <ClipboardButton
                         copy={() =>
-                          this.getMarkdown(formatted, debug.reformatted)
+                          this.getMarkdown({
+                            formatted,
+                            reformatted: debug.reformatted,
+                          })
                         }
                       >
                         Copy markdown
@@ -290,7 +382,7 @@ function orderOptions(availableOptions, order) {
     optionsByName[option.name] = option;
   }
 
-  return order.map(name => optionsByName[name]);
+  return order.map((name) => optionsByName[name]);
 }
 
 function getReportLink(reportBody) {

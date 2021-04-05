@@ -1,5 +1,6 @@
 "use strict";
 
+const stripAnsi = require("strip-ansi");
 const runPrettier = require("../runPrettier");
 
 test("do not show logs with --loglevel silent", () => {
@@ -22,9 +23,17 @@ describe("--write with --loglevel=silent doesn't log filenames", () => {
   runPrettier("cli/write", [
     "--write",
     "unformatted.js",
-    "--loglevel=silent"
+    "--loglevel=silent",
   ]).test({
-    status: 0
+    status: 0,
+  });
+});
+
+describe("Should use default level logger to log `--loglevel` error", () => {
+  runPrettier("cli/loglevel", ["--loglevel", "a-unknown-log-level"]).test({
+    status: "non-zero",
+    write: [],
+    stdout: "",
   });
 });
 
@@ -35,16 +44,18 @@ function runPrettierWithLogLevel(logLevel, patterns) {
     "--unknown-option",
     "--parser",
     "unknown-parser",
-    "not-found.js"
+    "not-found.js",
   ]);
 
-  expect(result).not.toEqual(0);
+  expect(result.status).toEqual(2);
+
+  const stderr = stripAnsi(result.stderr);
 
   if (patterns) {
-    patterns.forEach(pattern => {
-      expect(result.stderr).toMatch(pattern);
-    });
+    for (const pattern of patterns) {
+      expect(stderr).toMatch(pattern);
+    }
   } else {
-    expect(result.stderr).toMatch(/^\s*$/);
+    expect(stderr).toMatch(/^\s*$/);
   }
 }

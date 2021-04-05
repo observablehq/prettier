@@ -27,6 +27,9 @@ console.log(
   \\"should have no semi\\"
 )
 console.log(
+  \\"jest/__best-tests__/.file.js should have semi\\"
+);
+console.log(
   \\"jest/__best-tests__/file.js should have semi\\"
 );
 console.log(
@@ -42,11 +45,11 @@ function js() {
 }
 \\"use strict\\";
 
-module.exports = {
-        endOfLine:
-                \\"lf\\",
-        tabWidth: 8
-};
+module.exports =
+        {
+                endOfLine: \\"auto\\",
+                tabWidth: 8,
+        };
 function noConfigJs() {
   console.log(
     \\"no-config/file.js should have no semicolons\\"
@@ -103,9 +106,12 @@ exports[`accepts configuration from --config (stdout) 1`] = `
 
 exports[`accepts configuration from --config (write) 1`] = `Array []`;
 
-exports[`prints nothing when no file found with --find-config-path (stderr) 1`] = `""`;
+exports[`prints error message when no file found with --find-config-path (stderr) 1`] = `
+"[error] Can not find configure file for \\"..\\"
+"
+`;
 
-exports[`prints nothing when no file found with --find-config-path (write) 1`] = `Array []`;
+exports[`prints error message when no file found with --find-config-path (write) 1`] = `Array []`;
 
 exports[`resolves configuration file with --find-config-path file (stderr) 1`] = `""`;
 
@@ -134,6 +140,7 @@ function f() {
   )
 }
 console.log(\\"should have no semi\\")
+console.log(\\"jest/__best-tests__/.file.js should have semi\\");
 console.log(\\"jest/__best-tests__/file.js should have semi\\");
 console.log(\\"jest/Component.js should not have semi\\")
 console.log(\\"jest/Component.test.js should have semi\\");
@@ -143,8 +150,8 @@ function js() {
 \\"use strict\\";
 
 module.exports = {
-        endOfLine: \\"lf\\",
-        tabWidth: 8
+        endOfLine: \\"auto\\",
+        tabWidth: 8,
 };
 function noConfigJs() {
   console.log(\\"no-config/file.js should have no semicolons\\")

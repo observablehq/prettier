@@ -1,5 +1,5 @@
 "use strict";
 
-module.exports = function(arr) {
-  return arr.length > 0 ? arr[arr.length - 1] : null;
-};
+const getLast = (arr) => arr[arr.length - 1];
+
+module.exports = getLast;
