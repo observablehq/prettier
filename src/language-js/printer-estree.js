@@ -65,6 +65,7 @@ const {
   isBlockComment,
   needsHardlineAfterDanglingComment,
   rawText,
+  startsWithNoLookaheadToken,
   shouldPrintComma,
 } = require("./utils");
 const { locStart, locEnd } = require("./loc");
@@ -293,11 +294,16 @@ function printPathNoParens(path, options, print, args) {
         }, "directives");
       }
 
+      // Observable
+      const needsParens = n.body[0] && startsWithNoLookaheadToken(n.body[0],
+          /* forbidFunctionClassAndDoExpr */ false);
+      if (needsParens) parts.push('(');
       parts.push(
         path.call((bodyPath) => {
           return printStatementSequence(bodyPath, options, print);
         }, "body")
       );
+      if (needsParens) parts.push(')');
 
       parts.push(
         comments.printDanglingComments(path, options, /* sameIndent */ true)
@@ -2360,6 +2366,37 @@ function printPathNoParens(path, options, print, args) {
         "): ",
         path.call(print, "typeAnnotation"),
       ]);
+
+    // Observable types: Start
+    case "ViewExpression":
+      return concat(["viewof ", path.call(print, "id")]);
+    case "MutableExpression":
+      return concat(["mutable ", path.call(print, "id")]);
+    case "Cell": {
+      let shouldAddParens = n.body && startsWithNoLookaheadToken(n.body,
+          /* forbidFunctionClassAndDoExpr */ false);
+
+      const bodyId =
+        n.body &&
+        n.body.id !== null &&
+        (n.body.type === "FunctionExpression" || n.body.type === "ClassExpression") &&
+        n.body.id;
+      const isNamed = n.id && n.id !== bodyId;
+
+      let id = isNamed ? [
+        path.call(print, "id"),
+        " = "
+      ] : [];
+
+      let body = [
+        shouldAddParens ? "(" : "",
+        path.call(print, "body"),
+        shouldAddParens ? ")" : ""
+      ];
+
+      return concat(id.concat(body));
+    }
+    // Observable types: End
 
     default:
       /* istanbul ignore next */
