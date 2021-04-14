@@ -30,6 +30,7 @@ const {
   isNextLineEmpty,
   needsHardlineAfterDanglingComment,
   rawText,
+  startsWithNoLookaheadToken,
   shouldPrintComma,
   hasIgnoreComment,
   isCallExpression,
@@ -183,9 +184,6 @@ function printPathNoParens(path, options, print, args) {
       return parts;
 
     case "Program":
-      //TODO: Observable: const needsParens = node.body[0] && startsWithNoLookaheadToken(node.body[0]);
-      //if (needsParens) parts.push('(');
-      //if (needsParens) parts.push(')');
       return printBlockBody(path, options, print);
     // Babel extension.
     case "EmptyStatement":
@@ -339,89 +337,6 @@ function printPathNoParens(path, options, print, args) {
     case "ExportNamespaceSpecifier":
     case "ImportDefaultSpecifier":
     case "ExportDefaultSpecifier":
-/*
-      return path.call(print, "exported");
-    case "ImportDeclaration": {
-      parts.push("import ");
-
-      if (n.importKind && n.importKind !== "value") {
-        parts.push(n.importKind + " ");
-      }
-
-      const standalones = [];
-      const grouped = [];
-      if (n.specifiers && n.specifiers.length > 0) {
-        path.each(specifierPath => {
-          const value = specifierPath.getValue();
-          if (
-            value.type === "ImportDefaultSpecifier" ||
-            value.type === "ImportNamespaceSpecifier"
-          ) {
-            standalones.push(print(specifierPath));
-          } else {
-            grouped.push(print(specifierPath));
-          }
-        }, "specifiers");
-
-        if (standalones.length > 0) {
-          parts.push(join(", ", standalones));
-        }
-
-        if (standalones.length > 0 && grouped.length > 0) {
-          parts.push(", ");
-        }
-
-        if (
-          grouped.length === 1 &&
-          standalones.length === 0 &&
-          n.specifiers &&
-          !n.specifiers.some(node => node.comments)
-        ) {
-          parts.push(
-            concat([
-              "{",
-              options.bracketSpacing ? " " : "",
-              concat(grouped),
-              options.bracketSpacing ? " " : "",
-              "}"
-            ])
-          );
-        } else if (grouped.length >= 1) {
-          parts.push(
-            group(
-              concat([
-                "{",
-                indent(
-                  concat([
-                    options.bracketSpacing ? line : softline,
-                    join(concat([",", line]), grouped)
-                  ])
-                ),
-                ifBreak(shouldPrintComma(options) ? "," : ""),
-                options.bracketSpacing ? line : softline,
-                "}"
-              ])
-            )
-          );
-        }
-      } else if (
-        (n.importKind && n.importKind === "type") ||
-        // import {} from 'x'
-        /{\s*}/.test(
-          options.originalText.slice(
-            options.locStart(n),
-            options.locStart(n.source)
-          )
-        )
-      ) {
-        parts.push("{} ");
-      }
-      */
-
-    //case "ImportExpression": {
-    //  return concat(["import", concat(["(", path.call(print, "source"), ")"])]);
-    //}
-    -----------
       return printModuleSpecifier(path, options, print);
     case "ImportAttribute":
       return [print("key"), ": ", print("value")];
@@ -1114,35 +1029,36 @@ function printPathNoParens(path, options, print, args) {
       return parts;
     }
 
-/*
-          case "ViewExpression":
-            return concat(["viewof ", path.call(print, "id")]);
-          case "MutableExpression":
-            return concat(["mutable ", path.call(print, "id")]);
-          case "Cell": {
-            let shouldAddParens = n.body && startsWithNoLookaheadToken(n.body);
+    // Observable types: Start
+    case "ViewExpression":
+      return ["viewof ", path.call(print, "id")];
+    case "MutableExpression":
+      return ["mutable ", path.call(print, "id")];
+    case "Cell": {
+      let shouldAddParens = node.body && startsWithNoLookaheadToken(node.body);
 
-            const bodyId =
-              n.body &&
-              n.body.id !== null &&
-              (n.body.type === "FunctionExpression" || n.body.type === "ClassExpression") &&
-              n.body.id;
-            const isNamed = n.id && n.id !== bodyId;
+      const bodyId =
+        node.body &&
+        node.body.id !== null &&
+        (node.body.type === "FunctionExpression" || node.body.type === "ClassExpression") &&
+        node.body.id;
+      const isNamed = node.id && node.id !== bodyId;
 
-            let id = isNamed ? [
-              path.call(print, "id"),
-              " = "
-            ] : [];
+      let id = isNamed ? [
+        path.call(print, "id"),
+        " = "
+      ] : [];
 
-            let body = [
-              shouldAddParens ? "(" : "",
-              path.call(print, "body"),
-              shouldAddParens ? ")" : ""
-            ];
+      let body = [
+        shouldAddParens ? "(" : "",
+        path.call(print, "body"),
+        shouldAddParens ? ")" : ""
+      ];
 
-            return concat(id.concat(body));
-          }
-*/
+      return id.concat(body);
+    }
+    // Observable types: End
+
     default:
       /* istanbul ignore next */
       throw new Error("unknown type: " + JSON.stringify(node.type));

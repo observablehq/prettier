@@ -1,6 +1,6 @@
 "use strict";
 
-const diff = require("diff-sequences").default;
+const diff = require("diff");
 
 const {
   printer: { printDocToString },
@@ -118,38 +118,21 @@ function coreFormat(originalText, opts, addAlignmentSize = 0) {
 
     const newCursorNodeCharArray = newCursorNodeText.split("");
 
-    let aIndex = 0;
-    let bIndex = 0;
-    let cursorOffset = newCursorNodeStart;
-
-    let done = false;
-
-    diff(
-      oldCursorNodeCharArray.length,
-      newCursorNodeCharArray.length,
-      (aIndex, bIndex) => {
-        return (
-          oldCursorNodeCharArray[aIndex] === newCursorNodeCharArray[bIndex]
-        );
-      },
-      (nCommon, aCommon, bCommon) => {
-        if (done) {
-          return;
-        }
-        for (; aIndex !== aCommon; aIndex += 1) {
-          if (oldCursorNodeCharArray[aIndex] === CURSOR) {
-            done = true;
-            return;
-          }
-        }
-        cursorOffset += bCommon - bIndex;
-        bIndex = bCommon;
-
-        aIndex += nCommon;
-        bIndex += nCommon;
-        cursorOffset += nCommon;
-      }
+    const cursorNodeDiff = diff.diffArrays(
+      oldCursorNodeCharArray,
+      newCursorNodeCharArray
     );
+
+    let cursorOffset = newCursorNodeStart;
+    for (const entry of cursorNodeDiff) {
+      if (entry.removed) {
+        if (entry.value.includes(CURSOR)) {
+          break;
+        }
+      } else {
+        cursorOffset += entry.count;
+      }
+    }
 
     return { formatted: result.formatted, cursorOffset, comments: astComments };
   }

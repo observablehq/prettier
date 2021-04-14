@@ -3051,6 +3051,7 @@ eslint-plugin-jest@24.3.3:
 
 "eslint-plugin-prettier-internal-rules@link:scripts/tools/eslint-plugin-prettier-internal-rules":
   version "0.0.0"
+  uid ""
 
 eslint-plugin-react@7.23.1:
   version "7.23.1"

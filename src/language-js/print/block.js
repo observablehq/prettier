@@ -5,7 +5,7 @@ const { isNonEmptyArray } = require("../../common/util");
 const {
   builders: { hardline, indent },
 } = require("../../document");
-const { hasComment, CommentCheckFlags, isNextLineEmpty } = require("../utils");
+const { hasComment, CommentCheckFlags, isNextLineEmpty, startsWithNoLookaheadToken} = require("../utils");
 const { printHardlineAfterHeritage } = require("./class");
 
 const { printBody } = require("./statement");
@@ -64,7 +64,8 @@ function printBlockBody(path, options, print) {
   const node = path.getValue();
 
   const nodeHasDirectives = isNonEmptyArray(node.directives);
-  const nodeHasBody = node.body.some((node) => node.type !== "EmptyStatement");
+  // Observable fix here:
+  const nodeHasBody = node.body.some((node) => node && node.type !== "EmptyStatement");
   const nodeHasComment = hasComment(node, CommentCheckFlags.Dangling);
 
   if (!nodeHasDirectives && !nodeHasBody && !nodeHasComment) {
@@ -86,7 +87,16 @@ function printBlockBody(path, options, print) {
   }
 
   if (nodeHasBody) {
-    parts.push(printBody(path, options, print));
+      // Observable:
+      const needsParens = node.type === "Program" &&
+          startsWithNoLookaheadToken(node.body[0]);
+      if (needsParens) {
+        parts.push('(');
+        parts.push(printBody(path, options, print));
+        parts.push(')');
+      } else {
+        parts.push(printBody(path, options, print));
+      }
   }
 
   if (nodeHasComment) {

@@ -38,6 +38,7 @@ function printImportDeclaration(path, options, print) {
 
   parts.push(
     printModuleSpecifiers(path, options, print),
+    printImportInjections(path, options, print),
     printModuleSource(path, options, print),
     printImportAssertions(path, options, print),
     semi
@@ -45,6 +46,56 @@ function printImportDeclaration(path, options, print) {
 
   return parts;
 }
+
+// Observable:
+function printImportInjections(path, options, print) {
+  const node = path.getValue();
+  /** @type{Doc[]} */
+  const parts = [];
+
+  let groupedInjections = [];
+
+  if (node.injections) {
+    parts.push(" with ");
+    path.each(specifierPath => {
+      const value = specifierPath.getValue();
+      groupedInjections.push(print(specifierPath));
+    }, "injections");
+
+    if (groupedInjections.length === 0) {
+      parts.push("{}");
+    } else {
+      const canBreak =
+        groupedInjections.length > 1;
+
+      if (canBreak) {
+        parts.push(
+          group([
+            "{",
+            indent([
+              options.bracketSpacing ? line : softline,
+              join([",", line], groupedInjections),
+            ]),
+            ifBreak(shouldPrintComma(options) ? "," : ""),
+            options.bracketSpacing ? line : softline,
+            "}",
+          ])
+        );
+      } else {
+        parts.push([
+          "{",
+          options.bracketSpacing ? " " : "",
+          ...groupedInjections,
+          options.bracketSpacing ? " " : "",
+          "}",
+        ]);
+      }
+    }
+  }
+
+  return parts;
+}
+
 
 function printExportDeclaration(path, options, print) {
   const node = path.getValue();
@@ -286,8 +337,9 @@ function printModuleSpecifier(path, options, print) {
     parts.push(importKind, " ");
   }
 
-  if (node.view) print('viewof ');
-  if (node.mutable) print('mutable ');
+  // Observable:
+  if (node.view) parts.push('viewof ');
+  if (node.mutable) parts.push('mutable ');
 
   const isImport = type.startsWith("Import");
   const leftSideProperty = isImport ? "imported" : "local";
