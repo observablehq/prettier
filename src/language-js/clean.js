@@ -1,6 +1,6 @@
 "use strict";
 
-const { isBlockComment } = require("./utils");
+const isBlockComment = require("./utils/is-block-comment.js");
 
 const ignoredProperties = new Set([
   "range",
@@ -45,6 +45,9 @@ function clean(ast, newObj, parent) {
 
   if (ast.type === "DecimalLiteral") {
     newObj.value = Number(newObj.value);
+  }
+  if (ast.type === "Literal" && newObj.decimal) {
+    newObj.decimal = Number(newObj.decimal);
   }
 
   // We remove extra `;` and add them when needed
@@ -174,15 +177,13 @@ function clean(ast, newObj, parent) {
     // we will not trim the comment value and we will expect exactly one space on
     // either side of the GraphQL string
     // Also see ./embed.js
-    const hasLanguageComment =
-      ast.leadingComments &&
-      ast.leadingComments.some(
-        (comment) =>
-          isBlockComment(comment) &&
-          ["GraphQL", "HTML"].some(
-            (languageName) => comment.value === ` ${languageName} `
-          )
-      );
+    const hasLanguageComment = ast.leadingComments?.some(
+      (comment) =>
+        isBlockComment(comment) &&
+        ["GraphQL", "HTML"].some(
+          (languageName) => comment.value === ` ${languageName} `
+        )
+    );
     if (
       hasLanguageComment ||
       (parent.type === "CallExpression" && parent.callee.name === "graphql") ||

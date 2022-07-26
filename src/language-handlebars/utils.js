@@ -1,7 +1,7 @@
 "use strict";
 
-const htmlVoidElements = require("html-void-elements");
-const getLast = require("../utils/get-last");
+const { htmlVoidElements } = require("../../vendors/html-void-elements.json");
+const getLast = require("../utils/get-last.js");
 
 function isLastNodeOfSiblings(path) {
   const node = path.getValue();
@@ -32,6 +32,7 @@ function isGlimmerComponent(node) {
   return (
     isNodeOfSomeType(node, ["ElementNode"]) &&
     typeof node.tag === "string" &&
+    !node.tag.startsWith(":") &&
     (isUppercase(node.tag[0]) || node.tag.includes("."))
   );
 }
@@ -39,9 +40,9 @@ function isGlimmerComponent(node) {
 const voidTags = new Set(htmlVoidElements);
 function isVoid(node) {
   return (
+    voidTags.has(node.tag) ||
     (isGlimmerComponent(node) &&
-      node.children.every((node) => isWhitespaceNode(node))) ||
-    voidTags.has(node.tag)
+      node.children.every((node) => isWhitespaceNode(node)))
   );
 }
 
@@ -70,9 +71,9 @@ function isNextNodeOfSomeType(path, types) {
 
 function getSiblingNode(path, offset) {
   const node = path.getValue();
-  const parentNode = path.getParentNode(0) || {};
+  const parentNode = path.getParentNode(0) ?? {};
   const children =
-    parentNode.children || parentNode.body || parentNode.parts || [];
+    parentNode.children ?? parentNode.body ?? parentNode.parts ?? [];
   const index = children.indexOf(node);
   return index !== -1 && children[index + offset];
 }

@@ -1,14 +1,12 @@
 "use strict";
 
-const flat = require("lodash/flatten");
-
-const { printComments } = require("../../main/comments");
+const { printComments } = require("../../main/comments.js");
 const {
   getLast,
   isNextLineEmptyAfterIndex,
   getNextNonSpaceNonCommentCharacterIndex,
-} = require("../../common/util");
-const pathNeedsParens = require("../needs-parens");
+} = require("../../common/util.js");
+const pathNeedsParens = require("../needs-parens.js");
 const {
   isCallExpression,
   isMemberExpression,
@@ -20,8 +18,8 @@ const {
   hasComment,
   CommentCheckFlags,
   isNextLineEmpty,
-} = require("../utils");
-const { locEnd } = require("../loc");
+} = require("../utils/index.js");
+const { locEnd } = require("../loc.js");
 
 const {
   builders: {
@@ -34,14 +32,14 @@ const {
     label,
   },
   utils: { willBreak },
-} = require("../../document");
-const printCallArguments = require("./call-arguments");
-const { printMemberLookup } = require("./member");
+} = require("../../document/index.js");
+const printCallArguments = require("./call-arguments.js");
+const { printMemberLookup } = require("./member.js");
 const {
   printOptionalToken,
   printFunctionTypeParameters,
   printBindExpressionCallee,
-} = require("./misc");
+} = require("./misc.js");
 
 // We detect calls on member expressions specially to format a
 // common pattern better. The pattern we are looking for is this:
@@ -327,7 +325,7 @@ function printMemberChain(path, options, print) {
   const oneLine = printedGroups;
 
   const cutoff = shouldMerge ? 3 : 2;
-  const flatGroups = flat(groups);
+  const flatGroups = groups.flat();
 
   const nodeHasComment =
     flatGroups

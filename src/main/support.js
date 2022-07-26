@@ -1,14 +1,18 @@
 "use strict";
 
-const fromPairs = require("lodash/fromPairs");
 const semver = {
   compare: require("semver/functions/compare"),
   lt: require("semver/functions/lt"),
   gte: require("semver/functions/gte"),
 };
-const arrayify = require("../utils/arrayify");
+const arrayify = require("../utils/arrayify.js");
 const currentVersion = require("../../package.json").version;
-const coreOptions = require("./core-options").options;
+const coreOptions = require("./core-options.js").options;
+
+/**
+ * @typedef {import("./core-options").OptionInfo} OptionInfo
+ * @typedef {{ name: string; pluginDefaults: Array<any> } & OptionInfo} NamedOptionInfo
+ */
 
 /**
  * Strings in `plugins` and `pluginSearchDirs` are handled by a wrapped version
@@ -19,6 +23,7 @@ const coreOptions = require("./core-options").options;
  * @param {boolean=} param0.showUnreleased
  * @param {boolean=} param0.showDeprecated
  * @param {boolean=} param0.showInternal
+ * @return {{ languages: Array<any>, options: Array<NamedOptionInfo> }}
  */
 function getSupportInfo({
   plugins = [],
@@ -31,7 +36,7 @@ function getSupportInfo({
   const version = currentVersion.split("-", 1)[0];
 
   const languages = plugins
-    .reduce((all, plugin) => [...all, ...(plugin.languages || [])], [])
+    .flatMap((plugin) => plugin.languages || [])
     .filter(filterSince);
 
   const options = arrayify(
@@ -65,7 +70,7 @@ function getSupportInfo({
         }
       }
 
-      const pluginDefaults = fromPairs(
+      const pluginDefaults = Object.fromEntries(
         plugins
           .filter(
             (plugin) =>

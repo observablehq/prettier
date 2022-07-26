@@ -1,15 +1,14 @@
 "use strict";
 
-const flat = require("lodash/flatten");
-const { hasNewlineInRange } = require("../../common/util");
+const { hasNewlineInRange } = require("../../common/util.js");
 const {
   isJsxNode,
-  isBlockComment,
   getComments,
   isCallExpression,
   isMemberExpression,
-} = require("../utils");
-const { locStart, locEnd } = require("../loc");
+} = require("../utils/index.js");
+const { locStart, locEnd } = require("../loc.js");
+const isBlockComment = require("../utils/is-block-comment.js");
 const {
   builders: {
     line,
@@ -21,7 +20,7 @@ const {
     dedent,
     breakParent,
   },
-} = require("../../document");
+} = require("../../document/index.js");
 
 /**
  * @typedef {import("../../document").Doc} Doc
@@ -209,7 +208,7 @@ function printTernary(path, options, print) {
   const parts = [];
 
   // We print a ConditionalExpression in either "JSX mode" or "normal mode".
-  // See tests/jsx/conditional-expression.js for more info.
+  // See `tests/format/jsx/conditional-expression.js` for more info.
   let jsxMode = false;
   const parent = path.getParentNode();
   const isParentTest =
@@ -304,13 +303,13 @@ function printTernary(path, options, print) {
   // We want a whole chain of ConditionalExpressions to all
   // break if any of them break. That means we should only group around the
   // outer-most ConditionalExpression.
-  const comments = flat([
+  const comments = [
     ...testNodePropertyNames.map((propertyName) =>
       getComments(node[propertyName])
     ),
     getComments(consequentNode),
     getComments(alternateNode),
-  ]);
+  ].flat();
   const shouldBreak = comments.some(
     (comment) =>
       isBlockComment(comment) &&

@@ -1,5 +1,5 @@
 "use strict";
-const getLast = require("../utils/get-last");
+const getLast = require("../utils/get-last.js");
 
 function getNodeHelper(path, count) {
   const stackIndex = getNodeStackIndexHelper(path.stack, count);
@@ -108,6 +108,21 @@ class AstPath {
       result[index] = callback(path, index, value);
     }, ...names);
     return result;
+  }
+
+  /**
+   * @param {() => void} callback
+   * @internal Unstable API. Don't use in plugins for now.
+   */
+  try(callback) {
+    const { stack } = this;
+    const stackBackup = [...stack];
+    try {
+      return callback();
+    } finally {
+      stack.length = 0;
+      stack.push(...stackBackup);
+    }
   }
 
   /**

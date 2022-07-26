@@ -1,17 +1,18 @@
 "use strict";
 
-const { getLast } = require("../common/util");
-const { locStart, locEnd } = require("./loc");
+const { getLast } = require("../common/util.js");
+const { locStart, locEnd } = require("./loc.js");
 const {
   cjkPattern,
   kPattern,
   punctuationPattern,
-} = require("./constants.evaluate");
+} = require("./constants.evaluate.js");
 
 const INLINE_NODE_TYPES = [
   "liquidNode",
   "inlineCode",
   "emphasis",
+  "esComment",
   "strong",
   "delete",
   "wikiLink",
@@ -51,9 +52,13 @@ function splitText(text, options) {
   /** @type {Array<{ type: "whitespace", value: " " | "\n" | "" } | { type: "word", value: string }>} */
   const nodes = [];
 
-  const tokens = (options.proseWrap === "preserve"
-    ? text
-    : text.replace(new RegExp(`(${cjkPattern})\n(${cjkPattern})`, "g"), "$1$2")
+  const tokens = (
+    options.proseWrap === "preserve"
+      ? text
+      : text.replace(
+          new RegExp(`(${cjkPattern})\n(${cjkPattern})`, "g"),
+          "$1$2"
+        )
   ).split(/([\t\n ]+)/);
   for (const [index, token] of tokens.entries()) {
     // whitespace
@@ -216,15 +221,11 @@ function mapAst(ast, handler) {
 }
 
 function isAutolink(node) {
-  if (!node || node.type !== "link" || node.children.length !== 1) {
+  if (node?.type !== "link" || node.children.length !== 1) {
     return false;
   }
-  const child = node.children[0];
-  return (
-    child &&
-    locStart(node) === locStart(child) &&
-    locEnd(node) === locEnd(child)
-  );
+  const [child] = node.children;
+  return locStart(node) === locStart(child) && locEnd(node) === locEnd(child);
 }
 
 module.exports = {

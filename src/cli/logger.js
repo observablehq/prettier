@@ -1,9 +1,12 @@
 "use strict";
 
 const readline = require("readline");
-const chalk = require("chalk");
-const stripAnsi = require("strip-ansi");
 const wcwidth = require("wcwidth");
+
+// eslint-disable-next-line no-restricted-modules
+const { default: stripAnsi } = require("../../vendors/strip-ansi.js");
+// eslint-disable-next-line no-restricted-modules
+const { default: chalk } = require("../../vendors/chalk.js");
 
 const countLines = (stream, text) => {
   const columns = stream.columns || 80;
@@ -87,4 +90,4 @@ function createLogger(logLevel = "log") {
   }
 }
 
-module.exports = { createLogger };
+module.exports = createLogger;
