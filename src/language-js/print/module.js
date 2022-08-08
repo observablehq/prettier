@@ -55,12 +55,11 @@ function printImportInjections(path, options, print) {
   /** @type{Doc[]} */
   const parts = [];
 
-  let groupedInjections = [];
+  const groupedInjections = [];
 
   if (node.injections) {
     parts.push(" with ");
     path.each(specifierPath => {
-      const value = specifierPath.getValue();
       groupedInjections.push(print(specifierPath));
     }, "injections");
 
@@ -72,34 +71,34 @@ function printImportInjections(path, options, print) {
 
       if (canBreak) {
         parts.push(
-          group(
-            concat([
+        group(
+            [
               "{",
               indent(
-                concat([
+                [
                   options.bracketSpacing ? line : softline,
-                  join(concat([",", line]), groupedInjections),
-                ])
+                  join([",", line], groupedInjections),
+                ]
               ),
               ifBreak(shouldPrintComma(options) ? "," : ""),
               options.bracketSpacing ? line : softline,
               "}",
-            ])
+            ]
           )
         );
       } else {
-        parts.push(concat([
+        parts.push([
           "{",
           options.bracketSpacing ? " " : "",
           ...groupedInjections,
           options.bracketSpacing ? " " : "",
           "}",
-        ]));
+        ]);
       }
     }
   }
 
-  return concat(parts);
+  return parts;
 }
 
 
@@ -349,8 +348,8 @@ function printModuleSpecifier(path, options, print) {
   }
 
   // Observable:
-  if (node.view) parts.push('viewof ');
-  if (node.mutable) parts.push('mutable ');
+  if (node.view) {parts.push("viewof ");}
+  if (node.mutable) {parts.push("mutable ");}
 
   const isImport = type.startsWith("Import");
   const leftSideProperty = isImport ? "imported" : "local";
