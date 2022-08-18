@@ -210,12 +210,16 @@ function printPathNoParens(path, options, print, args) {
 
     case "Program": {
       // Observable Start
-      const needsParens = node.body[0] && startsWithNoLookaheadToken(node.body[0],
-          /* forbidFunctionClassAndDoExpr */ false);
-      if (needsParens) {parts.push("(");}
-      parts.push(printBlockBody(path, options, print));
-      if (needsParens) {parts.push(")");}
-      return parts;
+      const printed = printBlockBody(path, options, print);
+      if (printed) {
+        const needsParens = node.body[0] && startsWithNoLookaheadToken(node.body[0],
+            /* forbidFunctionClassAndDoExpr */ false);
+        if (needsParens) {parts.push("(");}
+        parts.push(printed);
+        if (needsParens) {parts.push(")");}
+        return parts;
+      }
+      return "";
       // Observable End
     }
     // Babel extension.
@@ -815,9 +819,9 @@ function printPathNoParens(path, options, print, args) {
 
     // Observable types: Start
     case "ViewExpression":
-      return (["viewof ", path.call(print, "id")]);
+      return ["viewof ", path.call(print, "id")];
     case "MutableExpression":
-      return (["mutable ", path.call(print, "id")]);
+      return ["mutable ", path.call(print, "id")];
     case "Cell": {
       const shouldAddParens = node.body && startsWithNoLookaheadToken(node.body,
           /* forbidFunctionClassAndDoExpr */ false);
