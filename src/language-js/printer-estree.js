@@ -28,6 +28,7 @@ const {
   isCallExpression,
   isMemberExpression,
   markerForIfWithoutBlockAndSameLineComment,
+  startsWithNoLookaheadToken,
 } = require("./utils/index.js");
 const { locStart, locEnd } = require("./loc.js");
 const isBlockComment = require("./utils/is-block-comment.js");
@@ -207,8 +208,20 @@ function printPathNoParens(path, options, print, args) {
 
       return parts;
 
-    case "Program":
-      return printBlockBody(path, options, print);
+    case "Program": {
+      // Observable Start
+      const printed = printBlockBody(path, options, print);
+      if (printed) {
+        const needsParens = node.body[0] && startsWithNoLookaheadToken(node.body[0],
+            /* forbidFunctionClassAndDoExpr */ false);
+        if (needsParens) {parts.push("(");}
+        parts.push(printed);
+        if (needsParens) {parts.push(")");}
+        return parts;
+      }
+      return "";
+      // Observable End
+    }
     // Babel extension.
     case "EmptyStatement":
       return "";
@@ -803,6 +816,37 @@ function printPathNoParens(path, options, print, args) {
       parts.push("}");
       return parts;
     }
+
+    // Observable types: Start
+    case "ViewExpression":
+      return ["viewof ", path.call(print, "id")];
+    case "MutableExpression":
+      return ["mutable ", path.call(print, "id")];
+    case "Cell": {
+      const shouldAddParens = node.body && startsWithNoLookaheadToken(node.body,
+          /* forbidFunctionClassAndDoExpr */ false);
+
+      const bodyId =
+        node.body &&
+        node.body.id !== null &&
+        (node.body.type === "FunctionExpression" || node.body.type === "ClassExpression") &&
+        node.body.id;
+      const isNamed = node.id && node.id !== bodyId;
+
+      const id = isNamed ? [
+        path.call(print, "id"),
+        " = "
+      ] : [];
+
+      const body = [
+        shouldAddParens ? "(" : "",
+        path.call(print, "body"),
+        shouldAddParens ? ")" : ""
+      ];
+
+      return ([...id, ...body]);
+    }
+    // Observable types: End
 
     default:
       /* istanbul ignore next */
