@@ -214,9 +214,12 @@ function printPathNoParens(path, options, print, args) {
       if (printed) {
         const needsParens = node.body[0] && startsWithNoLookaheadToken(node.body[0],
             /* forbidFunctionClassAndDoExpr */ false);
-        if (needsParens) {parts.push("(");}
-        parts.push(printed);
-        if (needsParens) {parts.push(")");}
+        if (needsParens) {
+          printed.splice(printed.length - 1, 1);
+          parts.push("(", printed, ")");
+        } else {
+          parts.push(printed);
+        }
         return parts;
       }
       return "";
