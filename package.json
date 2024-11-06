@@ -19,8 +19,10 @@
     "standalone.js",
     "src",
     "bin",
-    "vendors"
+    "vendors",
+    "types/index.d.ts"
   ],
+  "types": "./types/index.d.ts",
   "dependencies": {
     "@angular/compiler": "12.2.16",
     "@babel/code-frame": "7.16.7",
@@ -102,6 +104,7 @@
     "@types/file-entry-cache": "5.0.2",
     "@types/find-cache-dir": "3.2.1",
     "@types/jest": "27.4.1",
+    "@types/prettier": "2.7.1",
     "@typescript-eslint/eslint-plugin": "5.20.0",
     "babel-jest": "27.5.1",
     "benchmark": "2.1.4",
