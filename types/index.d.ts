@@ -1,3 +1,3 @@
-declare module "prettier" {
+declare module "@observablehq/prettier" {
   export * from "prettier";
 }
